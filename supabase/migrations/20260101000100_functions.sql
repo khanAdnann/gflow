@@ -1,15 +1,14 @@
 -- AI Credits Demo — trusted server-side functions.
--- All of these are SECURITY DEFINER and executable ONLY by service_role
--- (i.e. by Edge Functions after they authenticate the caller's JWT).
+-- Safe to re-run (uses IF NOT EXISTS / CREATE OR REPLACE).
 
-create index rate_limits_window_idx on public.rate_limits (window_start);
+create index if not exists rate_limits_window_idx on public.rate_limits (window_start);
 
 -- Tunables -------------------------------------------------------------
 -- Minimum seconds between attribution and verification (anti-scripting).
 -- Accounts older than 24h are not "newly registered" and cannot be attributed.
 
 -- ------------------------------------------------------------ rate limit
-create function public.check_rate_limit(p_key text, p_max integer, p_window_seconds integer)
+create or replace function public.check_rate_limit(p_key text, p_max integer, p_window_seconds integer)
 returns boolean
 language plpgsql security definer set search_path = public as $$
 declare
@@ -26,7 +25,7 @@ begin
 end $$;
 
 -- -------------------------------------------------------------- progress
-create function public.get_challenge_progress(p_owner uuid) returns jsonb
+create or replace function public.get_challenge_progress(p_owner uuid) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
   v_verified integer;
@@ -64,7 +63,7 @@ begin
 end $$;
 
 -- Sets completed_at iff the owner really has >= 5 verified referrals.
-create function public.complete_challenge_if_eligible(p_owner uuid) returns jsonb
+create or replace function public.complete_challenge_if_eligible(p_owner uuid) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
   v_verified integer;
@@ -85,7 +84,7 @@ begin
 end $$;
 
 -- ------------------------------------------------------------ attribution
-create function public.attribute_referral(p_code text, p_user uuid) returns jsonb
+create or replace function public.attribute_referral(p_code text, p_user uuid) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
   v_code public.referral_codes;
@@ -122,13 +121,7 @@ begin
 end $$;
 
 -- ------------------------------------------------------------ verification
--- Qualifying action for the REFERRED participant (all must hold):
---   1. they were attributed to a referral code (pending referral exists),
---   2. they explicitly acknowledged the "simulated demo" notice (p_acknowledged),
---   3. they generated their own referral code (i.e. actually used the demo), and
---   4. at least 20 seconds passed since attribution.
--- The caller's identity comes from the verified JWT, never from request input.
-create function public.verify_referral(p_user uuid, p_acknowledged boolean) returns jsonb
+create or replace function public.verify_referral(p_user uuid, p_acknowledged boolean) returns jsonb
 language plpgsql security definer set search_path = public as $$
 declare
   v_ref public.referrals;
@@ -164,10 +157,122 @@ begin
 end $$;
 
 -- Status of the caller as a referred participant (no info about the referrer).
-create function public.get_attribution_status(p_user uuid) returns text
+create or replace function public.get_attribution_status(p_user uuid) returns text
 language sql security definer set search_path = public as $$
   select status from public.referrals where referred_user_id = p_user;
 $$;
+
+-- ------------------------------------------ authenticated client RPC wrappers
+create or replace function public.rpc_create_referral_code() returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_code text;
+  v_alphabet constant text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  v_candidate text;
+  v_i int;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  if not public.check_rate_limit('create-code:u:' || v_uid::text, 20, 60) then
+    raise exception 'rate_limited' using errcode = 'P0001';
+  end if;
+
+  select code into v_code from public.referral_codes where owner_id = v_uid and active limit 1;
+  if v_code is not null then
+    return jsonb_build_object('code', v_code);
+  end if;
+
+  for attempt in 1..5 loop
+    v_candidate := '';
+    for v_i in 1..10 loop
+      v_candidate := v_candidate || substr(v_alphabet, 1 + floor(random() * 31)::int, 1);
+    end loop;
+    begin
+      insert into public.referral_codes (owner_id, code) values (v_uid, v_candidate);
+      return jsonb_build_object('code', v_candidate);
+    exception when unique_violation then
+      select code into v_code from public.referral_codes where owner_id = v_uid and active limit 1;
+      if v_code is not null then
+        return jsonb_build_object('code', v_code);
+      end if;
+    end;
+  end loop;
+
+  raise exception 'could_not_create_code' using errcode = 'P0001';
+end $$;
+
+create or replace function public.rpc_attribute_referral(p_code text) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_clean text := upper(trim(coalesce(p_code, '')));
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  if not public.check_rate_limit('attribute:u:' || v_uid::text, 10, 60) then
+    return jsonb_build_object('result', 'rate_limited');
+  end if;
+  if v_clean !~ '^[A-HJ-KM-NP-Z2-9]{10}$' then
+    return jsonb_build_object('result', 'invalid_code');
+  end if;
+  return public.attribute_referral(v_clean, v_uid);
+end $$;
+
+create or replace function public.rpc_verify_referral(p_acknowledged boolean) returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  if not public.check_rate_limit('verify:u:' || v_uid::text, 10, 60) then
+    return jsonb_build_object('result', 'rate_limited');
+  end if;
+  return public.verify_referral(v_uid, p_acknowledged);
+end $$;
+
+create or replace function public.rpc_get_challenge_progress() returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_prog jsonb;
+  v_attr text;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  if not public.check_rate_limit('progress:u:' || v_uid::text, 60, 60) then
+    raise exception 'rate_limited' using errcode = 'P0001';
+  end if;
+  v_prog := public.get_challenge_progress(v_uid);
+  v_attr := public.get_attribution_status(v_uid);
+  return v_prog || jsonb_build_object('myAttribution', v_attr);
+end $$;
+
+create or replace function public.rpc_get_challenge_status() returns jsonb
+language plpgsql security definer set search_path = public as $$
+declare
+  v_uid uuid := auth.uid();
+  v_prog jsonb;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  if not public.check_rate_limit('status:u:' || v_uid::text, 60, 60) then
+    raise exception 'rate_limited' using errcode = 'P0001';
+  end if;
+  v_prog := public.complete_challenge_if_eligible(v_uid);
+  return jsonb_build_object(
+    'completed', coalesce((v_prog->>'completed')::boolean, false),
+    'verified', (v_prog->>'verified')::int,
+    'target', (v_prog->>'target')::int,
+    'completedAt', v_prog->'completedAt'
+  );
+end $$;
 
 -- ------------------------------------------------------------ privileges
 revoke all on function
@@ -176,7 +281,12 @@ revoke all on function
   public.complete_challenge_if_eligible(uuid),
   public.attribute_referral(text, uuid),
   public.verify_referral(uuid, boolean),
-  public.get_attribution_status(uuid)
+  public.get_attribution_status(uuid),
+  public.rpc_create_referral_code(),
+  public.rpc_attribute_referral(text),
+  public.rpc_verify_referral(boolean),
+  public.rpc_get_challenge_progress(),
+  public.rpc_get_challenge_status()
 from public, anon, authenticated;
 
 grant execute on function
@@ -188,3 +298,10 @@ grant execute on function
   public.get_attribution_status(uuid)
 to service_role;
 
+grant execute on function
+  public.rpc_create_referral_code(),
+  public.rpc_attribute_referral(text),
+  public.rpc_verify_referral(boolean),
+  public.rpc_get_challenge_progress(),
+  public.rpc_get_challenge_status()
+to authenticated, service_role;

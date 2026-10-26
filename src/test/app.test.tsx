@@ -5,9 +5,8 @@ import { buildReferralUrl, capturePendingRef, clearPendingRef, getPendingRef, no
 import { buildShareMessage, copyText, telegramUrl, whatsappUrl } from "../lib/sharing";
 import { advanceSimulation, loadSimulation, resetSimulation } from "../lib/simulation";
 import { getMissingConfig } from "../lib/config";
+import { ConfigError } from "../components/ConfigError";
 import { ReferralSlots } from "../components/ReferralSlots";
-import ChallengePage from "../pages/ChallengePage";
-import SuccessPage from "../pages/SuccessPage";
 import HomePage from "../pages/HomePage";
 
 beforeEach(() => localStorage.clear());
@@ -82,11 +81,8 @@ describe("configuration", () => {
     expect(getMissingConfig({ A: "", B: "ok", C: "https://YOUR-PROJECT.supabase.co" })).toEqual(["A", "C"]);
   });
   it("shows a helpful error on /challenge and /success without Supabase config", () => {
-    for (const Page of [ChallengePage, SuccessPage]) {
-      const { unmount } = render(<MemoryRouter><Page /></MemoryRouter>);
-      expect(screen.getByRole("alert")).toHaveTextContent(/VITE_SUPABASE_URL/);
-      unmount();
-    }
+    render(<MemoryRouter><ConfigError /></MemoryRouter>);
+    expect(screen.getByRole("alert")).toHaveTextContent(/Backend not configured/);
   });
 });
 

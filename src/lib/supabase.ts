@@ -18,8 +18,9 @@ export async function ensureParticipant(): Promise<string> {
   if (data.session) return data.session.user.id;
   const { data: created, error } = await supabase.auth.signInAnonymously();
   if (error || !created.user) {
+    const detail = error?.message ? ` (${error.message})` : "";
     throw new Error(
-      "Could not start a participant session. Make sure anonymous sign-ins are enabled in Supabase Auth.",
+      `Could not start a participant session${detail}. In your Supabase Dashboard, go to Authentication → Sign In / Providers and enable "Allow anonymous sign-ins".`,
     );
   }
   return created.user.id;

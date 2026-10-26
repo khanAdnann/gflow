@@ -162,6 +162,19 @@ describe("RLS & privileges (as authenticated client)", () => {
     await db.exec(`select public.get_challenge_progress('${uid(8)}')`);
     await asAdmin();
   });
+  it("authenticated RPC wrappers derive identity strictly from auth.uid()", async () => {
+    await as("authenticated", uid(8));
+    const created = await rpc("rpc_create_referral_code", "");
+    expect(created.code).toMatch(/^[A-HJ-KM-NP-Z2-9]{10}$/);
+    const prog = await rpc("rpc_get_challenge_progress", "");
+    expect(prog.verified).toBe(0);
+    expect(prog.target).toBe(5);
+    const stat = await rpc("rpc_get_challenge_status", "");
+    expect(stat.completed).toBe(false);
+    await as("anon");
+    await denied("select public.rpc_create_referral_code()");
+    await asAdmin();
+  });
   it("rate limiter blocks after the max", async () => {
     const hits: unknown[] = [];
     for (let i = 0; i < 4; i++) hits.push(await rpc("check_rate_limit", "'k', 3, 60"));
