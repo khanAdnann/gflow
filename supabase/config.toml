@@ -1,0 +1,29 @@
+project_id = "ai-credits-demo"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+major_version = 15
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+# Participants are anonymous auth users (server-issued UUID + JWT).
+enable_anonymous_sign_ins = true
+
+[functions.create-referral-code]
+verify_jwt = true
+[functions.attribute-referral]
+verify_jwt = true
+[functions.verify-referral]
+verify_jwt = true
+[functions.get-challenge-progress]
+verify_jwt = true
+[functions.get-challenge-status]
+verify_jwt = true
+
