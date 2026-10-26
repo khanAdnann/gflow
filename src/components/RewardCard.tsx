@@ -43,9 +43,8 @@ export function RewardCard({ label = "SIMULATED AI CREDITS", className = "" }: {
 
         <p className="gradient-text font-display text-6xl font-bold leading-none tracking-tight sm:text-7xl">{REWARD_LABEL}</p>
         <p className="mt-4 font-display text-sm font-bold tracking-[0.3em] text-slate-600 dark:text-slate-300 sm:text-base">{label}</p>
-        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">Simulated for demonstration — not redeemable.</p>
+        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">Demo reward only — not redeemable for actual credits.</p>
       </div>
     </motion.div>
   );
 }
-

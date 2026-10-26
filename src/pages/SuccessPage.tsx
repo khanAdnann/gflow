@@ -1,18 +1,25 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Share2 } from "lucide-react";
 import { Confetti } from "../components/Confetti";
 import { LoadingState } from "../components/LoadingState";
 import { ErrorState } from "../components/ErrorState";
 import { ConfigError } from "../components/ConfigError";
 import { RewardCard } from "../components/RewardCard";
+import { ReferralSlots } from "../components/ReferralSlots";
 import { useToast } from "../components/Toast";
 import { api } from "../lib/api";
 import { config, isConfigured } from "../lib/config";
 import { canNativeShare, copyText, nativeShare } from "../lib/sharing";
+import { TARGET_REFERRALS, type ReferralSlot } from "../types/referral";
 
-type View = { s: "loading" } | { s: "error"; message: string } | { s: "incomplete" } | { s: "done" };
+type View = { s: "loading" } | { s: "error"; message: string } | { s: "incomplete" } | { s: "done"; verified: number };
+
+const COMPLETED_SLOTS: ReferralSlot[] = Array.from({ length: TARGET_REFERRALS }, (_, i) => ({
+  slot: i + 1,
+  status: "verified",
+}));
 
 export default function SuccessPage() {
   if (!isConfigured) return <ConfigError />;
@@ -28,7 +35,7 @@ function SuccessInner() {
     let alive = true;
     setView({ s: "loading" });
     api.getStatus()
-      .then((r) => alive && setView(r.completed ? { s: "done" } : { s: "incomplete" }))
+      .then((r) => alive && setView(r.completed ? { s: "done", verified: r.verified } : { s: "incomplete" }))
       .catch((e) => alive && setView({ s: "error", message: e instanceof Error ? e.message : "Could not check status." }));
     return () => { alive = false; };
   }, [attempt]);
@@ -38,10 +45,10 @@ function SuccessInner() {
   if (view.s === "loading") return <LoadingState rows={2} label="Checking your challenge status" />;
   if (view.s === "error") return <ErrorState message={view.message} onRetry={() => setAttempt((n) => n + 1)} />;
 
-  const shareDemo = async () => {
+  const shareAchievement = async () => {
     const url = config.appUrl;
     if (canNativeShare()) { await nativeShare(url); return; }
-    toast.show((await copyText(url)) ? "Demo link copied successfully!" : "Couldn't copy the link.", "info");
+    toast.show((await copyText(url)) ? "Achievement link copied to clipboard!" : "Couldn't copy the link.", "info");
   };
 
   return (
@@ -58,23 +65,30 @@ function SuccessInner() {
         initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
         className="mt-8 font-display text-4xl font-bold sm:text-6xl"
       >
-        <span className="gradient-text">DONE! CHALLENGE COMPLETED!</span>
+        <span className="gradient-text">Challenge Completed!</span>
       </motion.h1>
       <p className="mx-auto mt-5 max-w-xl text-lg text-slate-600 dark:text-slate-300">
-        You completed the five-referral challenge. Thanks for exploring the AI Credits Demo!
+        You've completed the five-referral demo challenge.
       </p>
       <div className="mt-10">
         <RewardCard />
       </div>
-      <p className="mt-8 inline-block rounded-full border border-emerald-400/40 bg-emerald-400/10 px-5 py-2 font-bold tracking-wider text-emerald-500">
-        DEMO CHALLENGE COMPLETED ✓
-      </p>
-      <p className="mx-auto mt-4 max-w-lg text-sm text-slate-500 dark:text-slate-400">
-        This is an unofficial demonstration. No real Google Flow credits have been awarded.
+
+      <div className="card mx-auto mt-8 max-w-xl text-left">
+        <p className="mb-4 text-center font-display text-lg font-bold text-emerald-400">
+          5/5 Verified Referrals Confirmed ✓
+        </p>
+        <ReferralSlots slots={COMPLETED_SLOTS} />
+      </div>
+
+      <p className="mx-auto mt-6 max-w-lg rounded-2xl border border-amber-400/40 bg-amber-400/10 px-5 py-3 text-sm font-medium text-amber-700 dark:text-amber-200">
+        These are simulated demo credits. No actual Google Flow credits have been awarded.
       </p>
       <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-        <button className="btn-primary" onClick={shareDemo}>SHARE THE DEMO</button>
-        <Link to="/" className="btn-secondary">BACK TO HOME</Link>
+        <button className="btn-primary" onClick={shareAchievement}>
+          <Share2 className="h-4 w-4" aria-hidden /> SHARE ACHIEVEMENT
+        </button>
+        <Link to="/" className="btn-secondary">RETURN HOME</Link>
         <Link to="/challenge" className="btn-secondary">VIEW MY PROGRESS</Link>
       </div>
     </div>

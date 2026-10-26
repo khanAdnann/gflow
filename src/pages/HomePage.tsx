@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Compass, Share2, Trophy, ShieldCheck } from "lucide-react";
+import { ArrowRight, Compass, Share2, Trophy, ShieldCheck, BarChart3, PlayCircle } from "lucide-react";
 import { RewardCard } from "../components/RewardCard";
 
 const features = [
@@ -10,9 +10,30 @@ const features = [
 ];
 
 const steps = [
-  { n: "01", title: "Get your link", text: "Start the challenge and the server issues a unique, random referral link just for you." },
-  { n: "02", title: "Friends join", text: "A friend opens your link, starts the demo and confirms their participation. Visits alone never count." },
-  { n: "03", title: "Server verifies", text: "Our backend checks each referral, blocks self-referrals and duplicates, and updates your progress. Five verified = done." },
+  {
+    n: "01",
+    icon: PlayCircle,
+    title: "Step 1: Start Your Challenge",
+    text: "Create a participant session and receive your unique referral link.",
+  },
+  {
+    n: "02",
+    icon: Share2,
+    title: "Step 2: Share With Friends",
+    text: "Share your link using the Web Share API where available, with copy-link and WhatsApp sharing fallbacks.",
+  },
+  {
+    n: "03",
+    icon: BarChart3,
+    title: "Step 3: Track Your Progress",
+    text: "View the number of valid referrals recorded by the backend.",
+  },
+  {
+    n: "04",
+    icon: Trophy,
+    title: "Step 4: Complete the Challenge",
+    text: "Complete the five-referral requirement and see the demo completion screen.",
+  },
 ];
 
 export default function HomePage() {
@@ -24,11 +45,12 @@ export default function HomePage() {
           <span className="inline-block rounded-full border border-electric-400/40 bg-electric-500/10 px-4 py-1.5 text-xs font-bold tracking-[0.25em] text-electric-400">
             AI CREATOR CHALLENGE
           </span>
-          <h1 className="mt-6 font-display text-4xl font-bold leading-[1.05] sm:text-5xl lg:text-6xl">
-            What Would You Create With <span className="gradient-text">1,00,000 AI Credits?</span>
+          <h1 className="mt-6 font-display text-4xl font-bold leading-[1.08] sm:text-5xl lg:text-6xl">
+            Explore the Google Flow Credits Challenge
+            <span className="mt-2 block gradient-text">1,00,000 AI Credits</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-slate-600 dark:text-slate-300">
-            Explore our interactive AI credits demo, invite friends to try it, and complete the five-referral challenge.
+            Discover our interactive AI credits demo, invite friends to participate, and complete the five-referral challenge.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <button className="btn-primary" onClick={() => navigate("/challenge")}>
@@ -57,13 +79,23 @@ export default function HomePage() {
       </section>
 
       <section id="how-it-works" className="mt-24 scroll-mt-24">
-        <h2 className="font-display text-3xl font-bold sm:text-4xl">How it works</h2>
-        <ol className="mt-8 grid gap-5 md:grid-cols-3">
+        <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+          <h2 className="font-display text-3xl font-bold sm:text-4xl">How It Works</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
+            Completing the challenge does not grant actual Google Flow credits.
+          </p>
+        </div>
+        <ol className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((s) => (
-            <li key={s.n} className="card">
-              <span className="gradient-text font-display text-4xl font-bold">{s.n}</span>
-              <h3 className="mt-3 font-display text-xl font-bold">{s.title}</h3>
-              <p className="mt-2 text-slate-600 dark:text-slate-300">{s.text}</p>
+            <li key={s.n} className="card flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className="gradient-text font-display text-4xl font-bold">{s.n}</span>
+                  <s.icon className="h-6 w-6 text-violet-400" aria-hidden />
+                </div>
+                <h3 className="mt-4 font-display text-lg font-bold">{s.title}</h3>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{s.text}</p>
+              </div>
             </li>
           ))}
         </ol>
@@ -74,8 +106,9 @@ export default function HomePage() {
         <div>
           <h2 id="disclaimer" className="font-display text-xl font-bold">Important disclaimer</h2>
           <p className="mt-2 text-slate-600 dark:text-slate-300">
-            The 1,00,000 credits shown here are <strong>simulated</strong>. This is an unofficial demo that is not issued,
-            sponsored or endorsed by Google or Google Flow, and no real credits, money or prizes are awarded.{" "}
+            Completing the challenge does not grant actual Google Flow credits. The 1,00,000 credits shown here are{" "}
+            <strong>simulated</strong> for demonstration only. This is an unofficial demo that is not issued, sponsored, or
+            endorsed by Google or Google Flow, and no real credits, money, or prizes are awarded.{" "}
             <Link to="/about" className="font-semibold text-electric-400 underline-offset-4 hover:underline">Learn more</Link>.
           </p>
         </div>
@@ -83,4 +116,3 @@ export default function HomePage() {
     </div>
   );
 }
-

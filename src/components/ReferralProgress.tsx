@@ -2,17 +2,19 @@ import { motion } from "framer-motion";
 
 interface Props { verified: number; target: number; label?: string }
 
-export function ReferralProgress({ verified, target, label = "verified referrals" }: Props) {
+export function ReferralProgress({ verified, target, label = "Referrals" }: Props) {
   const pct = Math.min(100, Math.round((verified / target) * 100));
   return (
     <div>
       <div className="flex items-end justify-between gap-4">
         <div>
-          <p className="font-display text-5xl font-bold">
-            <span className="gradient-text">{verified}</span>
-            <span className="text-slate-400"> / {target}</span>
+          <p className="font-display text-4xl font-bold sm:text-5xl">
+            <span className="gradient-text">{verified}/{target}</span>{" "}
+            <span className="text-2xl text-slate-600 dark:text-slate-300 sm:text-3xl">{label}</span>
           </p>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">current {label} · target {target}</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            {verified >= target ? "Completed — all 5 verified referrals recorded" : `Current verified · target ${target}`}
+          </p>
         </div>
         <p className="font-display text-3xl font-bold" aria-hidden>{pct}%</p>
       </div>
@@ -30,4 +32,3 @@ export function ReferralProgress({ verified, target, label = "verified referrals
     </div>
   );
 }
-

@@ -1,21 +1,14 @@
 export const DISCLAIMER_SHORT = "Unofficial interactive demo. No real Google Flow credits are issued.";
 
 export function buildShareMessage(url: string): string {
-  return [
-    "🚀 Check out this interactive AI credits demo!",
-    "Explore the simulated 1,00,000 AI credits experience and try the five-referral challenge.",
-    `Try it here: ${url}`,
-    "Unofficial demo — no real credits are issued.",
-  ].join("\n");
+  return `I'm trying this unofficial AI Credits Challenge demo. Join using my referral link: ${url}. This is a simulation; no real Google Flow credits are awarded.`;
 }
 
 export const whatsappUrl = (url: string) =>
   `https://wa.me/?text=${encodeURIComponent(buildShareMessage(url))}`;
 
 export const telegramUrl = (url: string) =>
-  `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(
-    buildShareMessage(url).split("\n").filter((l) => !l.startsWith("Try it here")).join("\n"),
-  )}`;
+  `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(buildShareMessage(url))}`;
 
 export const facebookUrl = (url: string) =>
   `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
@@ -28,7 +21,11 @@ export function canNativeShare(): boolean {
 export async function nativeShare(url: string): Promise<boolean> {
   if (!canNativeShare()) return false;
   try {
-    await navigator.share({ title: "AI Credits Demo", text: buildShareMessage(url), url });
+    await navigator.share({
+      title: "AI Credits Challenge Demo",
+      text: buildShareMessage(url),
+      url,
+    });
     return true;
   } catch {
     return false; // user dismissed the sheet
@@ -61,4 +58,3 @@ export async function copyText(text: string): Promise<boolean> {
     return false;
   }
 }
-

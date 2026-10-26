@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Gift, PartyPopper, Target, UserCheck } from "lucide-react";
+import { Copy, Gift, KeyRound, PartyPopper, RefreshCw, Target, UserCheck } from "lucide-react";
 import { ReferralProgress } from "../components/ReferralProgress";
 import { ReferralSlots } from "../components/ReferralSlots";
 import { ShareButtons } from "../components/ShareButtons";
@@ -13,6 +13,7 @@ import { useReferral } from "../hooks/useReferral";
 import { useChallengeProgress } from "../hooks/useChallengeProgress";
 import { api, ApiError } from "../lib/api";
 import { isConfigured } from "../lib/config";
+import { copyText } from "../lib/sharing";
 import { REWARD_LABEL, TARGET_REFERRALS } from "../types/referral";
 
 export default function ChallengePage() {
@@ -26,6 +27,7 @@ function ChallengeInner() {
   const { progress, state, error, refresh } = useChallengeProgress(referral.state === "ready");
   const [ack, setAck] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const confirm = async () => {
     setVerifying(true);
@@ -40,6 +42,23 @@ function ChallengeInner() {
     }
   };
 
+  const handleManualRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refresh(true);
+      toast.show("Referral progress updated.", "info");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const copyCode = async () => {
+    if (!referral.code) return;
+    (await copyText(referral.code))
+      ? toast.show("Referral code copied!")
+      : toast.show("Could not copy referral code.", "error");
+  };
+
   if (referral.state === "error") {
     return <ErrorState message={referral.error ?? "Could not start your session."} onRetry={referral.retry} />;
   }
@@ -48,7 +67,7 @@ function ChallengeInner() {
     <div className="space-y-8">
       <motion.header initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="font-display text-4xl font-bold sm:text-5xl">
-          Your AI Credits <span className="gradient-text">Challenge</span>
+          Complete Your AI Credits <span className="gradient-text">Challenge</span>
         </h1>
         <div className="mt-6 grid gap-4 sm:grid-cols-2">
           <div className="card flex items-center gap-4 !p-5">
@@ -82,7 +101,32 @@ function ChallengeInner() {
       )}
 
       <section className="card" aria-labelledby="progress-h">
-        <h2 id="progress-h" className="mb-6 font-display text-2xl font-bold">Verified progress</h2>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <h2 id="progress-h" className="font-display text-2xl font-bold">Referral Progress</h2>
+            {progress && (
+              <span
+                className={`rounded-full border px-3 py-1 text-xs font-bold tracking-wider ${
+                  progress.completed
+                    ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-400"
+                    : "border-electric-400/40 bg-electric-500/10 text-electric-400"
+                }`}
+              >
+                {progress.completed ? "COMPLETED" : "IN PROGRESS"}
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={refreshing || !progress}
+            className="btn-secondary !min-h-[38px] !px-4 !py-2 text-xs"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} aria-hidden />
+            {refreshing ? "REFRESHING…" : "REFRESH PROGRESS"}
+          </button>
+        </div>
+
         {state === "error" ? (
           <ErrorState message={error ?? "Could not load progress."} onRetry={() => void refresh()} />
         ) : !progress ? (
@@ -100,7 +144,7 @@ function ChallengeInner() {
             )}
             {progress.completed && (
               <Link to="/success" className="btn-primary w-full">
-                <PartyPopper className="h-4 w-4" aria-hidden /> CHALLENGE COMPLETE — VIEW RESULT
+                <PartyPopper className="h-4 w-4" aria-hidden /> CHALLENGE COMPLETED — VIEW CELEBRATION SCREEN
               </Link>
             )}
           </div>
@@ -130,15 +174,49 @@ function ChallengeInner() {
 
       <section className="card" aria-labelledby="share-h">
         <h2 id="share-h" className="font-display text-2xl font-bold">Invite friends</h2>
-        <label htmlFor="ref-url" className="mt-4 block text-sm font-medium">Your unique referral link</label>
-        {referral.state === "ready" ? (
-          <input
-            id="ref-url" readOnly value={referral.url ?? ""} onFocus={(e) => e.currentTarget.select()}
-            className="mt-2 w-full rounded-2xl border border-slate-300 bg-white/70 px-4 py-3 font-mono text-sm dark:border-white/15 dark:bg-white/5"
-          />
-        ) : (
-          <div className="skeleton mt-2 h-12 w-full" aria-label="Generating your link" role="status" />
-        )}
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="sm:col-span-1">
+            <label htmlFor="ref-code" className="block text-sm font-medium">Unique referral code</label>
+            {referral.state === "ready" ? (
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex flex-1 items-center gap-2 rounded-2xl border border-slate-300 bg-white/70 px-4 py-3 font-mono text-sm font-bold tracking-widest dark:border-white/15 dark:bg-white/5">
+                  <KeyRound className="h-4 w-4 shrink-0 text-violet-400" aria-hidden />
+                  <input
+                    id="ref-code"
+                    readOnly
+                    value={referral.code ?? ""}
+                    onFocus={(e) => e.currentTarget.select()}
+                    className="w-full bg-transparent focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={copyCode}
+                  aria-label="Copy referral code"
+                  className="btn-secondary !min-h-[46px] !px-3.5"
+                >
+                  <Copy className="h-4 w-4" aria-hidden />
+                </button>
+              </div>
+            ) : (
+              <div className="skeleton mt-2 h-12 w-full" aria-label="Generating your code" role="status" />
+            )}
+          </div>
+
+          <div className="sm:col-span-2">
+            <label htmlFor="ref-url" className="block text-sm font-medium">Your referral URL</label>
+            {referral.state === "ready" ? (
+              <input
+                id="ref-url" readOnly value={referral.url ?? ""} onFocus={(e) => e.currentTarget.select()}
+                className="mt-2 w-full rounded-2xl border border-slate-300 bg-white/70 px-4 py-3 font-mono text-sm dark:border-white/15 dark:bg-white/5"
+              />
+            ) : (
+              <div className="skeleton mt-2 h-12 w-full" aria-label="Generating your link" role="status" />
+            )}
+          </div>
+        </div>
+
         <div className="mt-5">
           <ShareButtons url={referral.url} />
         </div>
@@ -150,4 +228,3 @@ function ChallengeInner() {
     </div>
   );
 }
-

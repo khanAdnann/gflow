@@ -39,12 +39,12 @@ describe("sharing", () => {
     const text = decodeURIComponent(href.split("text=")[1]);
     expect(text).toBe(buildShareMessage(url));
     expect(text).toContain(url);
-    expect(text).toContain("Unofficial demo — no real credits are issued.");
+    expect(text).toContain("This is a simulation; no real Google Flow credits are awarded.");
   });
   it("Telegram link carries url and text", () => {
     const u = new URL(telegramUrl(url));
     expect(u.searchParams.get("url")).toBe(url);
-    expect(u.searchParams.get("text")).toContain("interactive AI credits demo");
+    expect(u.searchParams.get("text")).toContain("unofficial AI Credits Challenge demo");
   });
   it("copyText uses the clipboard API when available", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
@@ -89,7 +89,8 @@ describe("configuration", () => {
 describe("UI", () => {
   it("landing page renders headline and CTAs", () => {
     render(<MemoryRouter><HomePage /></MemoryRouter>);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("1,00,000 AI Credits?");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Explore the Google Flow Credits Challenge");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("1,00,000 AI Credits");
     expect(screen.getByRole("button", { name: /START THE CHALLENGE/ })).toBeInTheDocument();
     expect(screen.getAllByText(/simulated/i).length).toBeGreaterThan(0);
   });
