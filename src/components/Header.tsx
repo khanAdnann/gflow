@@ -1,6 +1,7 @@
 import { Link, NavLink } from "react-router-dom";
-import { Moon, Sparkles, Sun } from "lucide-react";
+import { ExternalLink, Moon, Sparkles, Sun } from "lucide-react";
 import { useTheme } from "../hooks/useTheme";
+import { SMARTLINK_URL } from "./AdBanner";
 
 const links = [
   { to: "/", label: "Home", end: true },
@@ -35,6 +36,14 @@ export function Header() {
               <NavLink key={l.to} to={l.to} end={l.end} className={cls}>{l.label}</NavLink>
             ),
           )}
+          <a
+            href={SMARTLINK_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden items-center gap-1 rounded-full border border-electric-400/40 bg-electric-500/10 px-3 py-1.5 text-xs font-semibold text-electric-400 transition hover:bg-electric-500/20 sm:inline-flex"
+          >
+            Bonus Offer <ExternalLink className="h-3 w-3" aria-hidden />
+          </a>
           <button
             onClick={toggle}
             aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}
@@ -47,4 +56,3 @@ export function Header() {
     </header>
   );
 }
-
