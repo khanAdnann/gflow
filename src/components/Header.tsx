@@ -18,11 +18,11 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200/70 bg-white/60 backdrop-blur-xl dark:border-white/10 dark:bg-ink-950/60">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-3">
-        <Link to="/" className="flex items-center gap-2 font-display text-base font-bold tracking-wider" aria-label="AI Credits Demo — home">
+        <Link to="/" className="flex items-center gap-2 font-display text-base font-bold tracking-wider" aria-label="AI Credits — home">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-electric-500 to-violet-500 shadow-glow">
             <Sparkles className="h-5 w-5 text-white" aria-hidden />
           </span>
-          <span className="hidden sm:inline">AI CREDITS <span className="gradient-text">DEMO</span></span>
+          <span className="hidden sm:inline">AI <span className="gradient-text">CREDITS</span></span>
         </Link>
 
         <nav aria-label="Primary" className="flex items-center gap-0.5 sm:gap-1">
