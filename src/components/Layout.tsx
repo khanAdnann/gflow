@@ -3,7 +3,6 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { Particles } from "./Particles";
-import { ResponsiveAdStrip } from "./AdBanner";
 import { capturePendingRef } from "../lib/referral";
 
 export function Layout() {
@@ -28,8 +27,7 @@ export function Layout() {
       </a>
       <Particles />
       <Header />
-      <ResponsiveAdStrip className="mt-4" />
-      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 sm:pt-10">
+      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pt-10 sm:pt-16">
         <Outlet />
       </main>
       <Footer />
